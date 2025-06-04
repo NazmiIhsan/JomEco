@@ -159,7 +159,6 @@ fun ProductDetail(
                 },
                 title = { Text("Bin Type: $bin") },
                 text = {
-                    // Get bin image resource id based on bin type
                     val binImageRes = when (bin.lowercase()) {
                         "blue bin" -> R.drawable.tongbiru
                         "brown bin" -> R.drawable.tongcoklat
