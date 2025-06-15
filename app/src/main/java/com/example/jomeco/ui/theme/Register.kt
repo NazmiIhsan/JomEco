@@ -1,5 +1,6 @@
 package com.example.jomeco.ui.theme
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,12 +31,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,6 +47,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.jomeco.R
+import com.example.jomeco.database.AppDatabase
+import com.example.jomeco.database.User
+import com.example.jomeco.database.hashPassword
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -92,6 +99,9 @@ fun informasi(navController: NavController,modifier: Modifier)
     var email by remember { mutableStateOf("") }
     var pnumber by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
 
     Column (modifier = modifier.fillMaxWidth(),
@@ -162,32 +172,64 @@ fun informasi(navController: NavController,modifier: Modifier)
 
             )
 
+//        Spacer(modifier = modifier.height(30.dp))
+//
+//        DropDown(
+//            selectedCategory = selectedCategory,
+//            onCategorySelected = { selectedCategory = it },
+//            modifier = Modifier
+//        )
+
         Spacer(modifier = modifier.height(30.dp))
 
-        DropDown(
-            selectedCategory = selectedCategory,
-            onCategorySelected = { selectedCategory = it },
-            modifier = Modifier
-        )
+//        Button(
+//            onClick = {
+//                navController.navigate("login")
+//            },
+//            colors = ButtonDefaults.buttonColors(
+//                containerColor = MaterialTheme.colorScheme.tertiary,
+//                contentColor = Color.White)
+//        ) {
+//
+//            Text(
+//                text = "Sign Up",
+//            )
+//
+//
+//
+//        }
 
-        Spacer(modifier = modifier.height(30.dp))
 
         Button(
             onClick = {
-                navController.navigate("login")
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.tertiary,
-                contentColor = Color.White)
+                if (name.isNotBlank() && email.isNotBlank() && pnumber.isNotBlank()) {
+                    if (password == cpassword) {
+                        val hashedPassword = hashPassword(password)
+                        scope.launch {
+                            val db = AppDatabase.getDatabase(context)
+                            val user = User(
+                                username = name,
+                                email = email,
+                                phoneNumber = pnumber,
+                                password = hashedPassword
+                            )
+                            db.userDao().insertUser(user)
+                            navController.navigate("login")
+                        }
+
+                        Toast.makeText(context, "Registered Successfully", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                }
+            }
         ) {
-
-            Text(
-                text = "Sign Up",
-            )
-
-
-
+            Text(text = "Sign Up")
         }
+
+
 
 
 

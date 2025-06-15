@@ -17,7 +17,7 @@ class TrashClassifier(context: Context) {
     private val inputImageHeight: Int
     private val modelInputSize: Int
 
-    private val labels = listOf("plastic", "box") // Put your labels here
+    private val labels = listOf("plastic", "box")
 
     init {
         val model = loadModelFile(context)
