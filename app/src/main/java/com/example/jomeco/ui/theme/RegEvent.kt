@@ -1,5 +1,6 @@
 package com.example.jomeco.ui.theme
 
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,19 +27,32 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.jomeco.database.AppDatabase
+import com.example.jomeco.database.EventRegistration
+import com.example.jomeco.viewModel.EventRegistrationViewModel
+import com.example.jomeco.viewModel.EventViewModel
 
 
 @Composable
-fun RegForm(navController: NavController, modifier: Modifier)
-{
+fun RegForm(navController: NavController, modifier: Modifier, eventId: Int) {
+    val context = LocalContext.current
+    val database = AppDatabase.getDatabase(context)
+    val registrationDao = database.eventRegistrationDao()
+
+    val registrationViewModel = remember {
+        EventRegistrationViewModel(registrationDao)
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(navController = navController, "")
+            TopAppBar(navController = navController, "Join Event")
         },
         content = { paddingValues ->
             Column(
@@ -45,24 +60,23 @@ fun RegForm(navController: NavController, modifier: Modifier)
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-
                 Spacer(modifier = Modifier.height(16.dp))
 
-                eventReg(navController = navController, modifier = Modifier)
-
+                eventReg(
+                    navController = navController,
+                    modifier = Modifier,
+                    eventId = eventId,
+                    registrationViewModel = registrationViewModel
+                )
             }
-        },
-
-
-
-
-
-        )
+        }
+    )
 }
 
 
+
 @Composable
-fun eventReg(navController: NavController,modifier: Modifier)
+fun eventReg(navController: NavController,modifier: Modifier, eventId: Int, registrationViewModel: EventRegistrationViewModel)
 {
     var name by remember { mutableStateOf("") }
     var nric by remember { mutableStateOf("")}
@@ -71,12 +85,22 @@ fun eventReg(navController: NavController,modifier: Modifier)
     var pnumber by remember { mutableStateOf("") }
     var ecnu by remember { mutableStateOf("") }
 
+    val viewModel: EventViewModel = viewModel()
+    val events by viewModel.eventsFlow.collectAsState(initial = emptyList())
+    val event = events.find { it.id == eventId }
+
+    val context = LocalContext.current
+    val userId = context.getSharedPreferences("jomeco_prefs", Context.MODE_PRIVATE)
+        .getInt("current_user_id", -1)
+
+
 
     Column (modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
+        Text("Event Name: ${event?.title ?: "Loading..."}")
         Spacer(modifier = modifier.height(40.dp))
 
 //        Full Name
@@ -157,6 +181,18 @@ fun eventReg(navController: NavController,modifier: Modifier)
 
         Button(
             onClick = {
+                val registration = EventRegistration(
+                    eventId = eventId,
+                    userId = userId,
+                    fullName = name,
+                    nric = nric,
+                    email = email,
+                    phoneNumber = pnumber,
+                    emergencyName = ecna,
+                    emergencyNumber = ecnu
+                )
+
+                registrationViewModel.insertRegistration(registration)
                 navController.navigate("home")
             },
             colors = ButtonDefaults.buttonColors(

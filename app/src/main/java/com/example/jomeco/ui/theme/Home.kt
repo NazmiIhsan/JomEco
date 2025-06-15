@@ -1,10 +1,12 @@
 package com.example.jomeco.ui.theme
 
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -49,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.jomeco.database.Event
 import com.example.jomeco.viewModel.EventViewModel
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.clip
 
 
 data class EventCard(
@@ -62,9 +65,13 @@ data class EventCard(
 
 @Composable
 fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
+
     val context = LocalContext.current
-    val viewModel: EventViewModel = viewModel(context as ViewModelStoreOwner)
-    val events by viewModel.eventsFlow.collectAsState(initial = emptyList())
+    val sharedPref = context.getSharedPreferences("jomeco_prefs", Context.MODE_PRIVATE)
+    val userId = sharedPref.getInt("current_user_id", -1)
+
+    val viewModel: EventViewModel = viewModel()
+    val events by viewModel.getEventsNotJoinedBy(userId).collectAsState(initial = emptyList())
 
     Scaffold(
         topBar = {
@@ -147,33 +154,64 @@ fun TopBarHome(navController: NavController, modifier: Modifier = Modifier) {
 fun EventCard(event: Event, onClick: () -> Unit) {
     val context = LocalContext.current
     val imageResId = remember(event.imageUrl) {
-        // Remove the ".jpg" extension before getting the identifier
-        context.resources.getIdentifier(event.imageUrl.removeSuffix(".jpg"), "drawable", context.packageName)
+        context.resources.getIdentifier(
+            event.imageUrl.removeSuffix(".jpg"), "drawable", context.packageName
+        )
     }
 
     Card(
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         modifier = Modifier
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .fillMaxWidth()
             .clickable { onClick() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Image(
-                painter = painterResource(id = imageResId),
-                contentDescription = event.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
+            if (imageResId != 0) {
+                Image(
+                    painter = painterResource(id = imageResId),
+                    contentDescription = event.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            Text(
+                text = event.title,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary
             )
-            Text(text = event.title, style = MaterialTheme.typography.titleLarge)
-            Text(text = "${event.date} at ${event.time}")
-            Text(text = event.location)
-            Text(text = "Points: ${event.points} | Hours: ${event.hours}")
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "${event.date} • ${event.time}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Text(
+                text = event.location,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Points: ${event.points}   |   Hours: ${event.hours}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.secondary
+            )
         }
     }
 }
+
 
 
 

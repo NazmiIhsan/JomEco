@@ -1,10 +1,13 @@
 package com.example.jomeco
 
+import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -69,6 +72,7 @@ import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
+//    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 //        val viewModel = ViewModelProvider(this)[EventViewModel::class.java]
@@ -103,13 +107,16 @@ class MainActivity : ComponentActivity() {
                             }
 
                             composable("eventdetail/{eventId}") { backStackEntry ->
-                                val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
-                                Detail(navController = navController, modifier = Modifier, eventId = eventId)
+                                val eventId = backStackEntry.arguments?.getString("eventId")?.toIntOrNull() ?: 0
+                                Detail(navController = navController, modifier = Modifier, eventId = eventId )
                             }
 
-                            composable("regform") {
-                                RegForm(navController = navController, modifier = Modifier)
+
+                            composable("regform/{eventId}") { backStackEntry ->
+                                val eventId = backStackEntry.arguments?.getString("eventId")?.toIntOrNull() ?: 0
+                                RegForm(navController = navController, modifier = Modifier, eventId = eventId)
                             }
+
 
                             composable("ecoscan") {
                                 Scan(navController = navController,scanViewModel = scanViewModel)
@@ -198,6 +205,9 @@ fun LogIn(navController: NavController,modifier: Modifier = Modifier) {
                         val user = db.userDao().getUserByEmailAndPassword(name, hashedPassword)
 
                         if (user != null) {
+                            val sharedPref = context.getSharedPreferences("jomeco_prefs", Context.MODE_PRIVATE)
+                            sharedPref.edit().putInt("current_user_id", user.id).apply()
+
                             Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
                             navController.navigate("home")
                         } else {
