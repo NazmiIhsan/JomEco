@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
@@ -33,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,76 +44,90 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.jomeco.R
+import com.example.jomeco.database.Event
+import com.example.jomeco.viewModel.EventViewModel
 
 @Composable
-fun Detail(navController: NavController, modifier: Modifier, eventId: String) {
-var showDialog by remember { mutableStateOf(false) }
+fun Detail(navController: NavController, modifier: Modifier, eventId: Int) {
+    val viewModel: EventViewModel = viewModel()
+    val event by viewModel.getEventById(eventId).collectAsState(initial = null)
+
+    var showDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(navController = navController, "Event Details")
         },
-        content = { paddingValues ->
-            Column(
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-
-                Spacer(modifier = Modifier.height(16.dp))
-                events(modifier = Modifier, onImageClick = {showDialog= true})
-            }
-        },
-
         floatingActionButton = {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.BottomCenter
             ) {
                 ElevatedButton(
-                    onClick = { navController.navigate("regform") },
+                    onClick = { navController.navigate("regform/${eventId}")
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp),
+                        .padding(horizontal = 16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                 ) {
                     Text("Join")
                 }
             }
         },
-        floatingActionButtonPosition = FabPosition.Center,
+        floatingActionButtonPosition = FabPosition.Center
+    ) { paddingValues ->
 
-
-
-    )
-
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            text = {
-                Image(
-                    painter = painterResource(R.drawable.eco1),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text("Close")
-                }
+        if (event != null) {
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                Spacer(modifier = Modifier.height(16.dp))
+                events(event = event!!, onImageClick = { showDialog = true })
             }
-        )
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+
+        if (showDialog && event != null) {
+            val context = LocalContext.current
+            val imageResId = remember(event!!.imageUrl) {
+                context.resources.getIdentifier(event!!.imageUrl, "drawable", context.packageName)
+            }
+
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                text = {
+                    Image(
+                        painter = painterResource(imageResId),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { showDialog = false }) {
+                        Text("Close")
+                    }
+                }
+            )
+        }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -153,22 +169,27 @@ fun TopAppBar(navController: NavController, topName: String) {
 }
 
 @Composable
-fun events(modifier: Modifier, onImageClick: () -> Unit) {
+fun events(event: Event, onImageClick: () -> Unit) {
     Column(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp)
+            .padding(16.dp)
     ) {
+        val context = LocalContext.current
+        val imageResId = remember(event.imageUrl) {
+            context.resources.getIdentifier(event.imageUrl, "drawable", context.packageName)
+        }
+
         Image(
-            painter = painterResource(R.drawable.eco1),
+            painter = painterResource(imageResId),
             contentDescription = null,
-            modifier = Modifier.clickable{onImageClick()}
+            modifier = Modifier.clickable { onImageClick() }.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            "#Keluarga Malaysia Run - Earth Day 2022 - Kuala Lumpur",
+            event.title,
             style = MaterialTheme.typography.displayLarge,
             fontSize = 20.sp,
             textAlign = TextAlign.Center,
@@ -179,48 +200,25 @@ fun events(modifier: Modifier, onImageClick: () -> Unit) {
         Spacer(modifier = Modifier.height(20.dp))
 
         Column(modifier = Modifier.padding(start = 10.dp)) {
-            Row {
-                Text(
-                    text = "\uD83D\uDCC5 24 September 2022 (Saturday) | 08:00 AM",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
+            Text("📅 ${event.date}   ⏰ ${event.time}")
             Spacer(modifier = Modifier.height(10.dp))
-            Row {
-                Text(
-                    text = "\uD83D\uDCCD DBKL, Jalan Raja Laut",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
+            Text("📍 ${event.location}")
             Spacer(modifier = Modifier.height(10.dp))
-            Row {
-                Text(
-                    text = "\uD83D\uDCDC Certificate For All Participants",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
+            Text("🧾 Points: ${event.points} | Hours: ${event.hours}")
         }
-
-        Spacer(modifier = Modifier.height(30.dp))
-
-        Text(
-            "About",
-            style = MaterialTheme.typography.displayLarge,
-            fontSize = 30.sp,
-            color = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.padding(start = 10.dp),
-            textDecoration = TextDecoration.Underline
-        )
 
         Spacer(modifier = Modifier.height(20.dp))
 
+
         Text(
-            text = "#KELUARGA MALAYSIA RUN, a running event held on September 24, 2022, at Jalan Raja Laut in Kuala Lumpur, Malaysia. Featuring 3km and 10km categories, this run was organized under the \"Keluarga Malaysia\" national initiative and aimed to raise awareness about critical environmental issues, prominently themed around \"Climate Change\" and \"Earth Day 2022: Invest in Our Planet.\" The event saw involvement from Malaysian government bodies, such as the Ministry of National Unity, alongside sports event organizers, bringing the community together for a cause.",
-            modifier = Modifier
-                .padding(start = 16.dp, end = 16.dp)
+            event.description,
+            style = MaterialTheme.typography.displayLarge,
+            fontSize = 20.sp,
+//            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.tertiary
         )
-
-        Spacer(modifier = Modifier.height(70.dp))
-
     }
 }
+
+
