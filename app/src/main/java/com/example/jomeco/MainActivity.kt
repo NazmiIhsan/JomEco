@@ -1,6 +1,7 @@
 package com.example.jomeco
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -31,6 +32,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +46,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -51,6 +54,8 @@ import com.example.jomeco.ui.theme.JomEcoTheme
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.jomeco.database.AppDatabase
+import com.example.jomeco.database.hashPassword
 import com.example.jomeco.ui.theme.Detail
 import com.example.jomeco.ui.theme.HomeScreen
 import com.example.jomeco.ui.theme.ProductDetail
@@ -58,11 +63,16 @@ import com.example.jomeco.ui.theme.RegForm
 import com.example.jomeco.ui.theme.Register
 import com.example.jomeco.ui.theme.Scan
 import com.example.jomeco.ui.theme.ScanViewModel
+import com.example.jomeco.ui.theme.SplashScreen
+import com.example.jomeco.viewModel.EventViewModel
+import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+//        val viewModel = ViewModelProvider(this)[EventViewModel::class.java]
+//        viewModel.insertSampleEvent() // This runs once and inserts manually
         enableEdgeToEdge()
         setContent {
             JomEcoTheme {
@@ -73,8 +83,12 @@ class MainActivity : ComponentActivity() {
                         viewModelStoreOwner = LocalContext.current as ViewModelStoreOwner
                     )
 
-                    NavHost(navController = navController, startDestination = "login")
+                    NavHost(navController = navController, startDestination = "splash")
                         {
+                        composable("splash") {
+                            SplashScreen(navController = navController)
+                        }
+
                             composable("login") {
                                 LogIn(navController = navController)
                             }
@@ -135,6 +149,8 @@ fun LogIn(navController: NavController,modifier: Modifier = Modifier) {
 
     var name by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("")}
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     Column (modifier = modifier.padding(top = 30.dp).fillMaxWidth(),
         verticalArrangement = Arrangement.Center,
@@ -173,17 +189,31 @@ fun LogIn(navController: NavController,modifier: Modifier = Modifier) {
 
         Button(
             onClick = {
-                navController.navigate("home")
+                val hashedPassword = hashPassword(password)
+
+                scope.launch {
+                    try {
+                        val db = AppDatabase.getDatabase(context)
+                        // Check user by email and hashed password
+                        val user = db.userDao().getUserByEmailAndPassword(name, hashedPassword)
+
+                        if (user != null) {
+                            Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
+                            navController.navigate("home")
+                        } else {
+                            Toast.makeText(context, "Invalid email or password", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Login failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.tertiary,
-                contentColor = Color.White)
-        ) {
-
-            Text(
-                text = "Login",
+                contentColor = Color.White
             )
-
+        ) {
+            Text(text = "Login")
         }
 
         Spacer(modifier = modifier.height(30.dp))

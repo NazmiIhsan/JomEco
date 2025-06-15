@@ -19,9 +19,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import coil.compose.rememberAsyncImagePainter
-import com.example.jomeco.network.Product
-import com.example.jomeco.network.RetrofitClientOFF
 import com.example.jomeco.R
 
 
@@ -32,7 +29,7 @@ fun ProductDetail(
     bin: String,
     isDangerous: Boolean,
     bitmap: Bitmap?,
-    navController: NavController // Pass navController to enable navigation
+    navController: NavController
 ) {
     var showBinDialog by remember { mutableStateOf(false) }
 
@@ -54,7 +51,7 @@ fun ProductDetail(
 
         // Close Button (top-right)
         IconButton(
-            onClick = { navController.navigate("home") }, // Or wherever you want to go
+            onClick = { navController.navigate("home") },
             modifier = Modifier.align(Alignment.TopEnd)
         ) {
             Icon(

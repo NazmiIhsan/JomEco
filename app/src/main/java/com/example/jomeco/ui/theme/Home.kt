@@ -3,7 +3,6 @@ package com.example.jomeco.ui.theme
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,16 +10,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -34,7 +29,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -45,14 +39,16 @@ import com.example.jomeco.R
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Eco
-import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.NavigationBar
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.example.jomeco.LogIn
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.jomeco.database.Event
+import com.example.jomeco.viewModel.EventViewModel
+import androidx.compose.runtime.getValue
 
 
 data class EventCard(
@@ -65,45 +61,36 @@ data class EventCard(
 
 
 @Composable
-fun HomeScreen(navController: NavController, modifier: Modifier) {
-
-    val dummyEco = listOf(
-        EventCard("eco1",R.drawable.eco1, "#Keluarga Malaysia Run - Earth Day 2022: Invest in Our Planet & Combat Climate Change.",
-            "Kuala Lumpur", "24 Sept"),
-        EventCard("eco2",R.drawable.eco2, "Malaysia FutureGreens Expo", "Port Dickson", "1 July"),
-        EventCard("eco3",R.drawable.eco3, "Program Tanam 1 Juta Pokok Sehari", "Pulau Pinang", "22 April")
-    )
-
-
+fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val viewModel: EventViewModel = viewModel(context as ViewModelStoreOwner)
+    val events by viewModel.eventsFlow.collectAsState(initial = emptyList())
 
     Scaffold(
         topBar = {
-            TopBarHome(navController = navController, modifier = Modifier.statusBarsPadding())
+            TopBarHome(navController = navController)
         },
-
-        bottomBar = {HomeBottomNavBar(navController = navController)}
+        bottomBar = {
+            HomeBottomNavBar(navController = navController)
+        }
     ) { paddingValues ->
-
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            items(dummyEco) { eco ->
-                InfoCard(
-                    imageRes = eco.imageRes,
-                    title = eco.title,
-                    location = eco.location,
-                    date = eco.date,
+            items(events) { event ->
+                EventCard(
+                    event = event,
                     onClick = {
-                        navController.navigate("eventdetail/${eco.id}")
+                        navController.navigate("eventdetail/${event.id}")
                     }
                 )
             }
         }
-
     }
 }
+
 
 
 
@@ -157,33 +144,37 @@ fun TopBarHome(navController: NavController, modifier: Modifier = Modifier) {
 
 
 @Composable
-fun InfoCard(imageRes: Int, title: String, location: String, date: String, onClick: () -> Unit) {
+fun EventCard(event: Event, onClick: () -> Unit) {
+    val context = LocalContext.current
+    val imageResId = remember(event.imageUrl) {
+        // Remove the ".jpg" extension before getting the identifier
+        context.resources.getIdentifier(event.imageUrl.removeSuffix(".jpg"), "drawable", context.packageName)
+    }
+
     Card(
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(8.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(6.dp),
         modifier = Modifier
             .padding(16.dp)
-            .fillMaxWidth()
-            .clickable{ onClick()}
+            .clickable { onClick() }
     ) {
-        Column {
+        Column(modifier = Modifier.padding(16.dp)) {
             Image(
-                painter = painterResource(id = imageRes),
-                contentDescription = title,
+                painter = painterResource(id = imageResId),
+                contentDescription = event.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .height(200.dp)
             )
-
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = title, style = MaterialTheme.typography.titleMedium)
-                Text(text = "\uD83D\uDCCD $location", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "\uD83D\uDCC5 $date", style = MaterialTheme.typography.bodySmall)
-            }
+            Text(text = event.title, style = MaterialTheme.typography.titleLarge)
+            Text(text = "${event.date} at ${event.time}")
+            Text(text = event.location)
+            Text(text = "Points: ${event.points} | Hours: ${event.hours}")
         }
     }
 }
+
 
 
 
