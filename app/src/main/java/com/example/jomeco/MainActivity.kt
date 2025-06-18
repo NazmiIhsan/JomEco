@@ -1,5 +1,7 @@
 package com.example.jomeco
 
+import EditProfileScreen
+import android.app.Application
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
@@ -68,6 +70,12 @@ import com.example.jomeco.ui.theme.Scan
 import com.example.jomeco.ui.theme.ScanViewModel
 import com.example.jomeco.ui.theme.SplashScreen
 import com.example.jomeco.viewModel.EventViewModel
+import com.example.profile.ui.theme.BadgeCollectorScreen
+//import com.example.profile.ui.theme.EditProfileScreen
+import com.example.profile.ui.theme.ProfileScreen
+import com.example.profile.ui.theme.ProfileViewModel
+import com.example.profile.ui.theme.RewardsPage
+import com.example.profile.viewmodel.BadgeViewModel
 import kotlinx.coroutines.launch
 
 
@@ -86,6 +94,8 @@ class MainActivity : ComponentActivity() {
                     val scanViewModel = viewModel<ScanViewModel>(
                         viewModelStoreOwner = LocalContext.current as ViewModelStoreOwner
                     )
+                    val profileViewModel: ProfileViewModel = viewModel()
+
 
                     NavHost(navController = navController, startDestination = "splash")
                         {
@@ -135,6 +145,66 @@ class MainActivity : ComponentActivity() {
 
                                 ProductDetail(type, bin, danger, bitmap, navController)
                             }
+
+
+                            composable("ProfileScreen") {
+                                ProfileScreen(
+                                    navController = navController,
+                                    viewModel = profileViewModel, // Now it’s valid
+                                    onEditClick = { navController.navigate("editProfile") },
+                                    onRewardsClick = { navController.navigate("rewards") }
+                                )
+                            }
+
+                            composable("rewards") {
+                                RewardsPage(
+                                    onBackClick = { navController.popBackStack() },
+                                    onNavigateToBadges = { navController.navigate("badges") }
+                                )
+                            }
+
+                            composable("badges") {
+                                val context = LocalContext.current
+                                val appContext = context.applicationContext as Application
+
+                                val badgeViewModel = viewModel<BadgeViewModel>(
+                                    factory = ViewModelProvider.AndroidViewModelFactory.getInstance(appContext)
+                                )
+
+                                // Get userId from SharedPreferences
+                                val sharedPref = context.getSharedPreferences("jomeco_prefs", Context.MODE_PRIVATE)
+                                val userId = sharedPref.getInt("current_user_id", -1)
+
+                                if (userId != -1) {
+                                    BadgeCollectorScreen(
+                                        viewModel = badgeViewModel,
+                                        userId = userId,
+                                        onBackClick = { navController.popBackStack() }
+                                    )
+                                } else {
+                                    // Optional: handle jika userId belum ada
+                                    Text("User not found.")
+                                }
+                            }
+
+
+                            composable("editProfile") {
+                                EditProfileScreen(
+                                    viewModel = profileViewModel,
+                                    onSaveClicked = {
+                                        navController.popBackStack()
+                                    },
+                                    onBackClicked = { navController.popBackStack()}
+                                )
+                            }
+
+
+
+
+
+
+
+
 
 
 

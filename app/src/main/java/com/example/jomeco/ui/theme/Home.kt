@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -51,6 +52,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.jomeco.database.Event
 import com.example.jomeco.viewModel.EventViewModel
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
 
 
@@ -71,31 +74,74 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
     val userId = sharedPref.getInt("current_user_id", -1)
 
     val viewModel: EventViewModel = viewModel()
+    var searchQuery by remember { mutableStateOf("") }
+
+    var isSearching by remember { mutableStateOf(false) }
+
     val events by viewModel.getEventsNotJoinedBy(userId).collectAsState(initial = emptyList())
+    val filteredEvents = events.filter {
+        it.title.contains(searchQuery, ignoreCase = true)
+    }
 
     Scaffold(
         topBar = {
-            TopBarHome(navController = navController)
+            TopBarHome(
+                navController = navController,
+                isSearching = isSearching,
+                onToggleSearch = { isSearching = !isSearching }
+            )
         },
         bottomBar = {
             HomeBottomNavBar(navController = navController)
         }
     ) { paddingValues ->
-        LazyColumn(
+
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            items(events) { event ->
-                EventCard(
-                    event = event,
-                    onClick = {
-                        navController.navigate("eventdetail/${event.id}")
-                    }
+            // Search field
+            if (isSearching) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search events...") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
                 )
+            }
+
+            // If no events found
+            if (filteredEvents.isEmpty()) {
+                Text(
+                    text = "No results found.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                )
+            } else {
+                // Event list
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(filteredEvents) { event ->
+                        EventCard(
+                            event = event,
+                            onClick = {
+                                navController.navigate("eventdetail/${event.id}")
+                            }
+                        )
+                    }
+                }
             }
         }
     }
+
+
 }
 
 
@@ -104,7 +150,9 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBarHome(navController: NavController, modifier: Modifier = Modifier) {
+fun TopBarHome(navController: NavController, isSearching: Boolean,  onToggleSearch: () -> Unit,modifier: Modifier = Modifier
+
+             ) {
 
 
     CenterAlignedTopAppBar(
@@ -131,7 +179,7 @@ fun TopBarHome(navController: NavController, modifier: Modifier = Modifier) {
         },
 
         actions = {
-            IconButton(onClick = { /* TODO: Handle search */ }) {
+            IconButton(onClick = onToggleSearch) {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Search",
@@ -245,6 +293,7 @@ fun HomeBottomNavBar(navController: NavController) {
             }
             BottomNavItem("Profile", Icons.Default.Person)
             {
+                navController.navigate("ProfileScreen")
 
             }
         }

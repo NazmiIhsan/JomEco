@@ -22,8 +22,15 @@ interface EventDao {
     suspend fun deleteAllEvents()
 
 
+//    @Query("SELECT * FROM events WHERE id = :eventId")
+//    suspend fun getEventById(eventId: Int): Event?
+
     @Query("SELECT * FROM events WHERE id = :eventId")
     fun getEventById(eventId: Int): Flow<Event?>
+
+
+
+
 
 
     @Query("""
@@ -33,6 +40,8 @@ interface EventDao {
     )
 """)
     fun getUnjoinedEvents(currentUserId: Int): Flow<List<Event>>
+
+
 
 
 
