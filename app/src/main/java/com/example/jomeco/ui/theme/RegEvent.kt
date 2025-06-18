@@ -38,16 +38,21 @@ import com.example.jomeco.database.AppDatabase
 import com.example.jomeco.database.EventRegistration
 import com.example.jomeco.viewModel.EventRegistrationViewModel
 import com.example.jomeco.viewModel.EventViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 @Composable
 fun RegForm(navController: NavController, modifier: Modifier, eventId: Int) {
     val context = LocalContext.current
     val database = AppDatabase.getDatabase(context)
+    val userDao = database.userDao()
+    val eventDao = database.eventDao()
     val registrationDao = database.eventRegistrationDao()
 
     val registrationViewModel = remember {
-        EventRegistrationViewModel(registrationDao)
+        EventRegistrationViewModel(userDao, eventDao, registrationDao)
     }
 
     Scaffold(
@@ -179,26 +184,52 @@ fun eventReg(navController: NavController,modifier: Modifier, eventId: Int, regi
         Spacer(modifier = modifier.height(30.dp))
 
 
+//        Button(
+//            onClick = {
+//                val registration = EventRegistration(
+//                    eventId = eventId,
+//                    userId = userId,
+//                    fullName = name,
+//                    nric = nric,
+//                    email = email,
+//                    phoneNumber = pnumber,
+//                    emergencyName = ecna,
+//                    emergencyNumber = ecnu
+//                )
+//
+//                registrationViewModel.insertRegistration(registration)
+//                navController.navigate("home")
+//            },
+//            colors = ButtonDefaults.buttonColors(
+//                containerColor = MaterialTheme.colorScheme.tertiary,
+//                contentColor = Color.White)
+//        )
+
         Button(
             onClick = {
-                val registration = EventRegistration(
-                    eventId = eventId,
-                    userId = userId,
-                    fullName = name,
-                    nric = nric,
-                    email = email,
-                    phoneNumber = pnumber,
-                    emergencyName = ecna,
-                    emergencyNumber = ecnu
-                )
+                CoroutineScope(Dispatchers.IO).launch {
+                    registrationViewModel.joinEventAndAddPoints(
+                        userId = userId,
+                        eventId = eventId,
+                        fullName = name,
+                        nric = nric,
+                        email = email,
+                        phone = pnumber,
+                        emergencyName = ecna,
+                        emergencyPhone = ecnu
+                    )
+                }
 
-                registrationViewModel.insertRegistration(registration)
                 navController.navigate("home")
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.tertiary,
-                contentColor = Color.White)
-        ) {
+                contentColor = Color.White
+            )
+        )
+
+
+        {
 
             Text(
                 text = "Submit",

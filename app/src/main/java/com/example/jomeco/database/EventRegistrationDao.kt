@@ -28,6 +28,10 @@ interface EventRegistrationDao {
     @Query("SELECT COUNT(*) FROM event_registration WHERE eventId = :eventId AND userId = :userId")
     fun hasUserJoined(eventId: Int, userId: Int): Flow<Int>
 
+    @Query("DELETE FROM event_registration")
+    suspend fun deleteAllRegistrations()
+
+
 
 
 

@@ -10,6 +10,7 @@ data class User(
     val email: String,
     val phoneNumber: String,
     val password: String,
-    val profilePictureUri: String? = null
+    val profilePictureUri: String? = null,
+    val totalPoints: Int = 0
 )
 
